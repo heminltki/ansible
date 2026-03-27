@@ -318,6 +318,31 @@ from ansible.module_utils.univention_umc import (
 )
 
 
+def escape_ldap_filter_chars(value):
+    """Escape special LDAP filter characters in a value.
+    
+    This prevents LDAP injection by escaping the following characters:
+    *  backslash
+    *  asterisk
+    *  left paren
+    *  right paren
+    *  null character
+    
+    Each character is escaped by prefixing it with a backslash.
+    """
+    if not value:
+        return value
+    
+    escape_chars = {'\\': '\\5c', '*': '\\2a', '(': '\\28', ')': '\\29', '\x00': '\\00'}
+    result = []
+    for char in value:
+        if char in escape_chars:
+            result.append(escape_chars[char])
+        else:
+            result.append(char)
+    return ''.join(result)
+
+
 def main():
     module = AnsibleModule(
         argument_spec=dict(
@@ -480,7 +505,7 @@ def main():
     diff = None
 
     obj = list(ldap_search(
-        '(&(objectClass=univentionShare)(cn={0}))'.format(name),
+        '(&(objectClass=univentionShare)(cn={0}))'.format(escape_ldap_filter_chars(name)),
         attr=['cn']
     ))
 
